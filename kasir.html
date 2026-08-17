@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Velaro Coffee - System Kasir / POS</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#fdf8f6', 500: '#8c593b', 600: '#7a4a2e', 700: '#633922', 900: '#3d2010' }
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>[x-cloak] { display: none !important; }</style>
+</head>
+<body x-data="kasirApp()" x-init="initApp()" class="bg-stone-900 text-stone-100 font-sans h-full flex overflow-hidden">
+
+  <!-- SIDEBAR KASIR -->
+  <aside class="w-64 bg-stone-950 border-r border-stone-800 p-4 flex flex-col justify-between shrink-0">
+    <div class="space-y-6">
+      <div class="flex items-center space-x-3 px-2">
+        <!-- LOGO VELARO COFFEE -->
+        <img src="images/velaro-coffe.png" alt="Velaro Coffee Logo" class="h-10 w-auto object-contain rounded-lg">
+        <div>
+          <h1 class="font-bold text-white text-sm">VELARO POS</h1>
+          <p class="text-[10px] text-stone-400">System Kasir Kafe</p>
+        </div>
+      </div>
+
+      <nav class="space-y-1">
+        <button @click="activeTab = 'orders'" :class="activeTab === 'orders' ? 'bg-brand-600 text-white' : 'text-stone-400 hover:bg-stone-800'" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold">
+          <i data-lucide="receipt" class="w-4 h-4"></i>
+          <span>Pesanan Masuk</span>
+        </button>
+      </nav>
+    </div>
+
+    <div class="text-[10px] text-stone-500 border-t border-stone-800 pt-3 text-center">
+      Velaro Coffee POS System v1.0
+    </div>
+  </aside>
+
+  <!-- MAIN AREA -->
+  <main class="flex-1 bg-stone-900 overflow-y-auto p-6 space-y-6">
+    <div class="flex justify-between items-center border-b border-stone-800 pb-4">
+      <div>
+        <h2 class="text-lg font-bold">Daftar Pesanan Real-time</h2>
+        <p class="text-xs text-stone-400">Pesanan dari Customer Website akan otomatis muncul di sini beserta nama pemesan.</p>
+      </div>
+      <button @click="loadOrders()" class="px-3 py-1.5 bg-stone-800 text-stone-300 hover:bg-stone-700 rounded-lg text-xs font-bold">Refresh Data</button>
+    </div>
+
+    <!-- ORDER LIST TABLE -->
+    <div class="bg-stone-950 rounded-2xl border border-stone-800 overflow-hidden">
+      <table class="w-full text-left text-xs">
+        <thead class="bg-stone-800/50 text-stone-400 border-b border-stone-800">
+          <tr>
+            <th class="p-4">NO. ORDER</th>
+            <th class="p-4">NAMA PEMESAN</th>
+            <th class="p-4">WAKTU</th>
+            <th class="p-4">DETAIL ITEM</th>
+            <th class="p-4">TOTAL</th>
+            <th class="p-4">STATUS PESANAN</th>
+            <th class="p-4">AKSI STATUS</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-stone-800">
+          <template x-if="orders.length === 0">
+            <tr>
+              <td colspan="7" class="p-8 text-center text-stone-500">Belum ada pesanan masuk.</td>
+            </tr>
+          </template>
+          
+          <template x-for="order in orders" :key="order.id">
+            <tr class="hover:bg-stone-900/50">
+              <td class="p-4 font-bold text-brand-500" x-text="order.id"></td>
+              <td class="p-4 font-bold text-white text-sm" x-text="order.customerName"></td>
+              <td class="p-4 text-stone-400" x-text="new Date(order.date).toLocaleTimeString('id-ID')"></td>
+              <td class="p-4">
+                <template x-for="item in order.items" :key="item.name">
+                  <div class="text-[11px] text-stone-300" x-text="item.qty + 'x ' + item.name"></div>
+                </template>
+              </td>
+              <td class="p-4 font-bold text-emerald-400" x-text="formatRupiah(order.total)"></td>
+              <td class="p-4">
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-amber-950 text-amber-400 border border-amber-800" x-text="order.status"></span>
+              </td>
+              <td class="p-4 space-x-1">
+                <button @click="updateStatus(order.id, 'Sedang Dibuat Barista')" class="px-2.5 py-1 bg-blue-600/30 text-blue-400 border border-blue-500/30 rounded-lg text-[10px] font-bold hover:bg-blue-600 hover:text-white">Proses</button>
+                <button @click="updateStatus(order.id, 'Siap Diambil / Diantar')" class="px-2.5 py-1 bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-lg text-[10px] font-bold hover:bg-emerald-600 hover:text-white">Siap</button>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script>
+    function kasirApp() {
+      return {
+        activeTab: 'orders',
+        orders: [],
+
+        initApp() {
+          this.loadOrders();
+          // Realtime Storage Listener dari Tab Customer
+          window.addEventListener('storage', (e) => {
+            if (e.key === 'velaro_shared_orders') {
+              this.loadOrders();
+            }
+          });
+          this.$nextTick(() => lucide.createIcons());
+        },
+
+        loadOrders() {
+          this.orders = JSON.parse(localStorage.getItem('velaro_shared_orders')) || [];
+        },
+
+        updateStatus(orderId, newStatus) {
+          let allOrders = JSON.parse(localStorage.getItem('velaro_shared_orders')) || [];
+          let target = allOrders.find(o => o.id === orderId);
+          if (target) {
+            target.status = newStatus;
+            localStorage.setItem('velaro_shared_orders', JSON.stringify(allOrders));
+            this.orders = allOrders;
+          }
+        },
+
+        formatRupiah(val) {
+          return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+        }
+      }
+    }
+  </script>
+</body>
+</html>
