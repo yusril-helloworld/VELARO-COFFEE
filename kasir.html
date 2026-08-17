@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="id" class="h-full">
+<html lang="id" class="h-full bg-stone-900">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Velaro Coffee - System Kasir / POS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Velaro POS - Kasir Mobile</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -22,98 +22,94 @@
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <style>[x-cloak] { display: none !important; }</style>
 </head>
-<body x-data="kasirApp()" x-init="initApp()" class="bg-stone-900 text-stone-100 font-sans h-full flex overflow-hidden">
+<body x-data="kasirApp()" x-init="initApp()" class="text-stone-100 font-sans h-full flex flex-col antialiased">
 
-  <!-- SIDEBAR KASIR -->
-  <aside class="w-64 bg-stone-950 border-r border-stone-800 p-4 flex flex-col justify-between shrink-0">
-    <div class="space-y-6">
-      <div class="flex items-center space-x-3 px-2">
-        <!-- LOGO VELARO COFFEE -->
-        <img src="images/velaro-coffe.png" alt="Velaro Coffee Logo" class="h-10 w-auto object-contain rounded-lg">
-        <div>
-          <h1 class="font-bold text-white text-sm">VELARO POS</h1>
-          <p class="text-[10px] text-stone-400">System Kasir Kafe</p>
-        </div>
-      </div>
-
-      <nav class="space-y-1">
-        <button @click="activeTab = 'orders'" :class="activeTab === 'orders' ? 'bg-brand-600 text-white' : 'text-stone-400 hover:bg-stone-800'" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold">
-          <i data-lucide="receipt" class="w-4 h-4"></i>
-          <span>Pesanan Masuk</span>
-        </button>
-      </nav>
-    </div>
-
-    <div class="text-[10px] text-stone-500 border-t border-stone-800 pt-3 text-center">
-      Velaro Coffee POS System v1.0
-    </div>
-  </aside>
-
-  <!-- MAIN AREA -->
-  <main class="flex-1 bg-stone-900 overflow-y-auto p-6 space-y-6">
-    <div class="flex justify-between items-center border-b border-stone-800 pb-4">
+  <!-- HEADER MOBILE KASIR -->
+  <header class="bg-stone-950 border-b border-stone-800 p-3.5 sticky top-0 z-40 flex justify-between items-center">
+    <div class="flex items-center space-x-2.5">
+      <img src="velaro-coffe.png" alt="Velaro Logo" class="h-8 w-auto object-contain rounded-md">
       <div>
-        <h2 class="text-lg font-bold">Daftar Pesanan Real-time</h2>
-        <p class="text-xs text-stone-400">Pesanan dari Customer Website akan otomatis muncul di sini beserta nama pemesan.</p>
+        <h1 class="font-bold text-white text-xs leading-none">VELARO POS</h1>
+        <p class="text-[9px] text-stone-400 mt-0.5">Kasir System</p>
       </div>
-      <button @click="loadOrders()" class="px-3 py-1.5 bg-stone-800 text-stone-300 hover:bg-stone-700 rounded-lg text-xs font-bold">Refresh Data</button>
     </div>
 
-    <!-- ORDER LIST TABLE -->
-    <div class="bg-stone-950 rounded-2xl border border-stone-800 overflow-hidden">
-      <table class="w-full text-left text-xs">
-        <thead class="bg-stone-800/50 text-stone-400 border-b border-stone-800">
-          <tr>
-            <th class="p-4">NO. ORDER</th>
-            <th class="p-4">NAMA PEMESAN</th>
-            <th class="p-4">WAKTU</th>
-            <th class="p-4">DETAIL ITEM</th>
-            <th class="p-4">TOTAL</th>
-            <th class="p-4">STATUS PESANAN</th>
-            <th class="p-4">AKSI STATUS</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-stone-800">
-          <template x-if="orders.length === 0">
-            <tr>
-              <td colspan="7" class="p-8 text-center text-stone-500">Belum ada pesanan masuk.</td>
-            </tr>
-          </template>
-          
-          <template x-for="order in orders" :key="order.id">
-            <tr class="hover:bg-stone-900/50">
-              <td class="p-4 font-bold text-brand-500" x-text="order.id"></td>
-              <td class="p-4 font-bold text-white text-sm" x-text="order.customerName"></td>
-              <td class="p-4 text-stone-400" x-text="new Date(order.date).toLocaleTimeString('id-ID')"></td>
-              <td class="p-4">
-                <template x-for="item in order.items" :key="item.name">
-                  <div class="text-[11px] text-stone-300" x-text="item.qty + 'x ' + item.name"></div>
-                </template>
-              </td>
-              <td class="p-4 font-bold text-emerald-400" x-text="formatRupiah(order.total)"></td>
-              <td class="p-4">
-                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-amber-950 text-amber-400 border border-amber-800" x-text="order.status"></span>
-              </td>
-              <td class="p-4 space-x-1">
-                <button @click="updateStatus(order.id, 'Sedang Dibuat Barista')" class="px-2.5 py-1 bg-blue-600/30 text-blue-400 border border-blue-500/30 rounded-lg text-[10px] font-bold hover:bg-blue-600 hover:text-white">Proses</button>
-                <button @click="updateStatus(order.id, 'Siap Diambil / Diantar')" class="px-2.5 py-1 bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-lg text-[10px] font-bold hover:bg-emerald-600 hover:text-white">Siap</button>
-              </td>
-            </tr>
-          </template>
-        </tbody>
-      </table>
+    <button @click="loadOrders()" class="px-2.5 py-1.5 bg-stone-800 hover:bg-stone-700 rounded-lg text-[10px] font-bold text-stone-300 flex items-center space-x-1 active:scale-95 transition">
+      <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+      <span>Refresh</span>
+    </button>
+  </header>
+
+  <!-- CONTENT MAIN (MOBILE CARD VIEW) -->
+  <main class="flex-1 p-3 space-y-3 overflow-y-auto max-w-md mx-auto w-full">
+    
+    <div class="flex justify-between items-center px-1">
+      <h2 class="text-xs font-bold text-stone-300">Pesanan Masuk (Real-time)</h2>
+      <span class="text-[10px] bg-brand-900/60 text-brand-300 border border-brand-700/50 px-2 py-0.5 rounded-full font-bold" x-text="orders.length + ' Pesanan'"></span>
     </div>
+
+    <template x-if="orders.length === 0">
+      <div class="text-center py-12 bg-stone-950 rounded-2xl border border-stone-800 p-6 space-y-2">
+        <p class="text-xs text-stone-500 font-medium">Belum ada pesanan masuk.</p>
+      </div>
+    </template>
+
+    <!-- LIST CARDS DARI PESANAN (DESAIN RESPONSIVE KHUSUS LAYAR HP) -->
+    <div class="space-y-3">
+      <template x-for="order in orders" :key="order.id">
+        <div class="bg-stone-950 border border-stone-800 rounded-2xl p-4 space-y-3 shadow-md">
+          
+          <!-- Header Order Card -->
+          <div class="flex justify-between items-start border-b border-stone-800/80 pb-2.5">
+            <div>
+              <span class="text-[10px] font-bold text-brand-400" x-text="order.id"></span>
+              <h3 class="text-sm font-black text-white" x-text="order.customerName"></h3>
+              <p class="text-[9px] text-stone-400" x-text="new Date(order.date).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})"></p>
+            </div>
+            <span class="px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase bg-amber-950/80 text-amber-400 border border-amber-800" x-text="order.status"></span>
+          </div>
+
+          <!-- Detail Items -->
+          <div class="space-y-1.5 py-1">
+            <template x-for="item in order.items" :key="item.name">
+              <div class="flex justify-between text-xs text-stone-300">
+                <span x-text="item.qty + 'x ' + item.name"></span>
+                <span class="text-stone-400" x-text="formatRupiah(item.price * item.qty)"></span>
+              </div>
+            </template>
+          </div>
+
+          <!-- Total & Actions Button -->
+          <div class="border-t border-stone-800/80 pt-2.5 flex justify-between items-center">
+            <div>
+              <span class="text-[9px] text-stone-500 block font-semibold">Total</span>
+              <span class="text-xs font-black text-emerald-400" x-text="formatRupiah(order.total)"></span>
+            </div>
+
+            <!-- Tombol Aksi Kasir -->
+            <div class="flex space-x-1.5">
+              <button @click="updateStatus(order.id, 'Diproses Barista')" class="px-3 py-1.5 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-xl text-[10px] font-bold hover:bg-blue-600 hover:text-white active:scale-95 transition">
+                Proses
+              </button>
+              <button @click="updateStatus(order.id, 'Siap Diambil')" class="px-3 py-1.5 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded-xl text-[10px] font-bold hover:bg-emerald-600 hover:text-white active:scale-95 transition">
+                Siap
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </template>
+    </div>
+
   </main>
 
   <script>
     function kasirApp() {
       return {
-        activeTab: 'orders',
         orders: [],
 
         initApp() {
           this.loadOrders();
-          // Realtime Storage Listener dari Tab Customer
           window.addEventListener('storage', (e) => {
             if (e.key === 'velaro_shared_orders') {
               this.loadOrders();
